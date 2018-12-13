@@ -1,3 +1,5 @@
+globals [ equilibrium ]
+
 turtles-own [
   manager  ;; a value that is 1 if one is a manager
   level ;; this is the hierarchical level [3 or 5]
@@ -128,6 +130,15 @@ to improve
 
   if ticks = 12 * years [ stop ]
 
+  if abs (mean [income] of women - mean [income] of men) <= 0.10 * pay_gap [ stop ]
+
+  if ticks = 1200 [
+    set equilibrium round (mean [income] of women) ]
+
+  if ticks = 1600 [
+    if round (mean [income] of women) = equilibrium [stop]
+  ]
+
   promote
 end
 
@@ -161,6 +172,13 @@ to layout
     connect ]
 
   layout-circle (turtles with [ level = 2 ]) 3
+
+  if abs (mean [income] of women - mean [income] of men) < 0.05 * pay_gap [ stop ]
+
+  if ticks = 1600 [
+    if round (mean [income] of women) = equilibrium [stop]
+  ]
+
 end
 
 to promote
@@ -335,7 +353,7 @@ pay_gap
 pay_gap
 -0.20
 0.20
-0.05
+0.1
 0.05
 1
 NIL
@@ -425,7 +443,7 @@ years
 years
 0
 50
-50.0
+0.0
 10
 1
 NIL
@@ -470,7 +488,7 @@ mean_bias
 mean_bias
 -1
 1
--0.5
+0.0
 0.05
 1
 NIL
