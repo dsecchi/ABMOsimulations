@@ -1,0 +1,1468 @@
+turtles-own [payoff]
+
+breed [selfish_p selfish]
+breed [i-altruists i-altruist]
+breed [u-altruists u-altruist]
+
+selfish_p-own [ sfit ]
+i-altruists-own [ ifit ]
+u-altruists-own [ ufit ]
+
+to setup
+  ;; (for this model to work with NetLogo's new plotting features,
+  ;; __clear-all-and-reset-ticks should be replaced with clear-all at
+  ;; the beginning of your setup procedure and reset-ticks at the end
+  ;; of the procedure.)
+  __clear-all-and-reset-ticks
+  setup-selfish
+  setup-i-altruist
+  setup-u-altruist
+  set-default-shape turtles "person"
+;  ask patches [
+;    set pcolor white ]
+  update-plot
+end
+
+to setup-selfish
+  crt Initial#-selfish [
+    setxyz random-xcor random-ycor random-zcor
+      set breed selfish_p
+      set color yellow
+      set size 2
+      set payoff sfit
+  ]
+end
+
+to setup-i-altruist
+  crt Initial#-i-altruists [
+    setxyz random-xcor random-ycor random-zcor
+      set breed i-altruists
+      set color red
+      set size 2
+      set payoff ifit
+  ]
+end
+
+to setup-u-altruist
+  crt Initial#-u-altruists [
+    setxyz random-xcor random-ycor random-zcor
+      set breed u-altruists
+      set color green
+      set size 2
+      set payoff ufit
+  ]
+end
+
+to go
+  connect
+  if (count i-altruists) / (count turtles) > .9 [ stop ]
+  if (count u-altruists) / (count turtles) > .9 [ stop ]
+  if (count selfish_p) / (count turtles) > .9 [ stop ]
+  if (count u-altruists) / (count turtles) < 0.01 [ stop ]
+  if (count i-altruists) / (count turtles) < 0.01 [ stop ]
+  if (count selfish_p) / (count turtles) < 0.01 [ stop ]
+  if ( count selfish_p = 0 ) or ( count i-altruists = 0 ) or ( count u-altruists = 0 ) [ stop ]
+  relocate
+;  move
+  ask turtles [ fitness ]
+  behavior-mode
+;  ask turtles [ dying ]
+;    prosper  ]
+  tick
+  update-plot
+;  ask u-altruist [ set label ufit ]
+;  ask i-altruist [ set label ifit ]
+;  ask selfish [ set label sfit ]
+end
+
+to move
+  repeat 1 [ layout-spring turtles links 0.05 5 .25 ;; ( random-normal 0 0.5 ) ; 0.05
+    display ] ; ( random-normal 0 0.5 ) ] ;;; previous numbers 0.05 5 0.1
+end
+
+to update-plot
+  set-current-plot "Docile/Non-docile Frequency"
+  set-current-plot-pen "s"
+  plot count selfish_p
+  set-current-plot-pen "i"
+  plot count i-altruists
+  set-current-plot-pen "u"
+  plot count u-altruists
+;  set-current-plot-pen "i + u"
+;  plot count u-altruist + count i-altruist
+end
+
+to connect
+  if relation [ ask turtles [ create-links-with turtles with [ self != myself ] in-radius Visible-individuals ] ]
+;;  ask turtles [ fitness ]
+;;      ask turtles [
+;;      create-links-with turtles in-radius vicinity with [ self != myself ]
+
+end
+
+to fitness  ;; turtle procedure
+  move
+  ask selfish_p with [ self != myself ] in-radius Visible-individuals [
+    set sfit (Normal-Fitness + Others-Altruist * ((count i-altruists in-radius Visible-individuals) /
+      (count turtles in-radius Visible-individuals)) * Extent-Altruism + Others-U-altruist *
+      ((count u-altruists in-radius Visible-individuals) /
+        (count turtles in-radius Visible-individuals)) * Extent-U-altruism)
+    set payoff sfit
+    ]
+  ask i-altruists with [ self != myself ] in-radius Visible-individuals [
+    set ifit (Normal-Fitness + Fitness-docility * Increment-Altruist + Others-Altruist * ((count i-altruists in-radius Visible-individuals) / (count turtles in-radius Visible-individuals)) * Extent-Altruism + Others-U-altruist * ((count u-altruists in-radius Visible-individuals) / (count turtles in-radius Visible-individuals)) * Extent-U-altruism - Cost-of-Altruism * Extent-Altruism)
+    set payoff ifit
+    ]
+  ask u-altruists with [ self != myself ] in-radius Visible-individuals [
+    set ufit (Normal-Fitness + Fitness-docility * Increment-U-altruist + Others-Altruist * ((count i-altruists in-radius Visible-individuals) / (count turtles in-radius Visible-individuals)) * Extent-Altruism + Others-U-altruist * ((count u-altruists in-radius Visible-individuals) / (count turtles in-radius Visible-individuals)) * Extent-U-altruism - Cost-of-Altruism * Extent-U-altruism)
+    set payoff ufit
+    ]
+end
+  ;; the procedure "with [ �" is not to have the computer calculate fit even when it is irrelevant (because there is noone close)
+
+to behavior-mode
+  ifelse kill-em-all [
+    ask i-altruists with [ count u-altruists in-radius Visible-individuals > 0 ] [
+      if ifit > mean ( [ ufit ] of u-altruists in-radius Visible-individuals )
+      [ hatch-i-altruists 1 [ setxyz random-xcor random-ycor random-zcor set payoff ifit ] ] ]
+    ask i-altruists with [ count selfish_p in-radius Visible-individuals > 0 ] [
+      if ifit > mean ( [ sfit ] of selfish_p in-radius Visible-individuals )
+      [ hatch-i-altruists 1 [ setxyz random-xcor random-ycor random-zcor set payoff ifit ] ] ]
+    ask u-altruists with [ count i-altruists in-radius Visible-individuals > 0 ] [
+      if ufit > mean ( [ ifit ] of i-altruists in-radius Visible-individuals )
+      [ hatch-u-altruists 1 [ setxyz random-xcor random-ycor random-zcor set payoff ufit ] ] ]
+    ask u-altruists with [ count selfish_p in-radius Visible-individuals > 0 ] [
+      if ufit > mean ( [ sfit ] of selfish_p in-radius Visible-individuals )
+      [ hatch-u-altruists 1 [ setxyz random-xcor random-ycor random-zcor set payoff ufit ] ] ]
+    ask selfish_p with [ count i-altruists in-radius Visible-individuals > 0 ] [
+      if sfit > mean ( [ ifit ] of i-altruists in-radius Visible-individuals )
+      [ hatch-selfish_p 1 [ setxyz random-xcor random-ycor random-zcor set payoff sfit ] ] ]
+    ask selfish_p with [ count u-altruists in-radius Visible-individuals > 0 ] [
+      if sfit > mean ( [ ufit ] of u-altruists in-radius Visible-individuals )
+      [ hatch-selfish_p 1 [ setxyz random-xcor random-ycor random-zcor set payoff sfit ] ] ]
+
+    ask turtles with [
+        payoff < ( mean [ payoff ] of turtles - 2 * standard-deviation [ payoff ] of turtles )
+        AND count my-links <= 1 ]
+    [ die ]
+  ]
+
+;    set kill [ count turtles with [
+;        payoff < ( mean [ payoff ] of turtles - ( Visible-individuals / 2 ) * standard-deviation [ payoff ] of turtles ) ] ]
+;    ifelse kill / count turtles <= .10 [ ask turtles with [
+;        payoff < ( mean [ payoff ] of turtles - ( Visible-individuals / 2 ) * standard-deviation [ payoff ] of turtles ) ] [ die ] ]
+;    [ random kill
+
+
+
+;;;;;;;;;;;;;;;;;;;;;;THIS BELOW IS THE LAST WORKING PROCEDURE (before what's above);;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;    ask i-altruist [ ;with [ self != myself ] in-radius Visible-individuals [
+;      if count ( u-altruist in-radius Visible-individuals ) > 0 [
+;        ifelse [ ifit ] of self > mean ( [ ufit ] of u-altruist in-radius Visible-individuals )
+;        [ hatch-i-altruist 1 [ setxyz random-xcor random-ycor random-zcor ] ] [ die ] ]
+;      if count ( selfish in-radius Visible-individuals ) > 0 [
+;        ifelse [ ifit ] of self > mean ( [ sfit ] of selfish in-radius Visible-individuals )
+;        [ hatch-i-altruist 1 [ setxyz random-xcor random-ycor random-zcor ] ] [ die ] ] ]
+;    ask u-altruist [ ;with [ self != myself ] in-radius Visible-individuals [
+;      if count ( i-altruist in-radius Visible-individuals ) > 0 [
+;        ifelse [ ufit ] of self > mean ( [ ifit ] of i-altruist in-radius Visible-individuals )
+;        [ hatch-u-altruist 1 [ setxyz random-xcor random-ycor random-zcor ] ] [ die ] ]
+;      if count ( selfish in-radius Visible-individuals ) > 0 [
+;        ifelse [ ufit ] of self > mean ( [ sfit ] of selfish in-radius Visible-individuals )
+;        [ hatch-u-altruist 1 [ setxyz random-xcor random-ycor random-zcor ] ] [ die ] ] ]
+;    ask selfish [ ;with [ self != myself ] in-radius Visible-individuals [
+;      if count ( i-altruist in-radius Visible-individuals ) > 0 [
+;        ifelse [ sfit ] of self > mean ( [ ifit ] of i-altruist in-radius Visible-individuals )
+;        [ hatch-selfish 1 [ setxyz random-xcor random-ycor random-zcor ] ] [ die ] ]
+;      if count ( u-altruist in-radius Visible-individuals ) > 0 [
+;        ifelse [ sfit ] of self > mean ( [ ufit ] of u-altruist in-radius Visible-individuals )
+;        [ hatch-selfish 1 [ setxyz random-xcor random-ycor random-zcor ] ] [ die ] ] ]
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;      ifelse ifit > sfit [ hatch-i-altruist 1 [ setxyz random-xcor random-ycor random-zcor ] ] [ die ]
+;      ifelse ufit > ifit [ hatch-u-altruist 1 [ setxyz random-xcor random-ycor random-zcor ] ] [ die ]
+;      ifelse ufit > sfit [ hatch-u-altruist 1 [ setxyz random-xcor random-ycor random-zcor ] ] [ die ]
+;      ifelse sfit > ifit [ hatch-selfish 1 [ setxyz random-xcor random-ycor random-zcor ] ] [ die ]
+;      ifelse sfit > ufit [ hatch-selfish 1 [ setxyz random-xcor random-ycor random-zcor ] ] [ die ]
+;      ]
+;          ask i-altruist with [ self != myself ] in-radius Visible-individuals  [
+;            ifelse ( [ ifit ] of self ) > mean ( [ ufit ] of turtles in-radius Visible-individuals ) [
+;                hatch-i-altruist 1 [ setxyz random-xcor random-ycor random-zcor ] ] [ die ]
+;            ifelse ( [ ifit ] of self ) > mean ( [ sfit ] of turtles in-radius Visible-individuals ) [
+;              hatch-i-altruist 1 [ setxyz random-xcor random-ycor random-zcor ] ] [ die ] ]
+;          ask u-altruist with [ self != myself ] in-radius Visible-individuals [
+;            ifelse ( [ ufit ] of self ) > mean ( [ ifit ] of turtles in-radius Visible-individuals ) [
+;              hatch-u-altruist 1 [ setxyz random-xcor random-ycor random-zcor ] ] [ die ]
+;            ifelse ( [ ufit ] of self ) > mean ( [ sfit ] of turtles in-radius Visible-individuals ) [
+;              hatch-u-altruist 1 [ setxyz random-xcor random-ycor random-zcor ] ] [ die ] ]
+;          ask selfish with [ self != myself ] in-radius  Visible-individuals [
+;            ifelse ( [ sfit ] of self ) > mean ( [ ufit ] of turtles in-radius Visible-individuals ) [
+;              hatch-selfish 1 [ setxyz random-xcor random-ycor random-zcor ] ] [ die ]
+;            ifelse ( [ sfit ] of self ) > mean ( [ ifit ] of turtles in-radius Visible-individuals ) [
+;              hatch-selfish 1 [ setxyz random-xcor random-ycor random-zcor ] ] [ die ] ] ]
+;   [
+;    ask i-altruist [ ;with [ self != myself ] in-radius Visible-individuals [
+;      if count ( u-altruist in-radius Visible-individuals ) > 0 [
+;        if [ ifit ] of self > mean ( [ ufit ] of u-altruist in-radius Visible-individuals ) [
+;        set breed i-altruist set color green set payoff ifit ] ]
+;      if count ( selfish in-radius Visible-individuals ) > 0 [
+;        if [ ifit ] of self > mean ( [ sfit ] of selfish in-radius Visible-individuals ) [
+;        set breed i-altruist set color green set payoff ifit ] ] ]
+;    ask u-altruist [ ;with [ self != myself ] in-radius Visible-individuals [
+;      if count ( i-altruist in-radius Visible-individuals ) > 0 [
+;        if [ ufit ] of self > mean ( [ ifit ] of i-altruist in-radius Visible-individuals ) [
+;        set breed u-altruist set color green set payoff ufit ] ]
+;      if count ( selfish in-radius Visible-individuals ) > 0 [
+;        if [ ufit ] of self > mean ( [ sfit ] of selfish in-radius Visible-individuals ) [
+;        set breed u-altruist set color green set payoff ufit ] ] ]
+;    ask selfish [ ;with [ self != myself ] in-radius Visible-individuals [
+;      if count ( i-altruist in-radius Visible-individuals ) > 0 [
+;        if [ sfit ] of self > mean ( [ ifit ] of i-altruist in-radius Visible-individuals ) [
+;        set breed selfish set color green set payoff sfit ] ]
+;      if count ( u-altruist in-radius Visible-individuals ) > 0 [
+;        if [ sfit ] of self > mean ( [ ufit ] of u-altruist in-radius Visible-individuals ) [
+;        set breed selfish set color green set payoff sfit ] ] ]
+;   ]
+;          ask i-altruist with [ self != myself ] in-radius Visible-individuals  [
+;            if ifit  > mean ( [ payoff ] of turtles in-radius Visible-individuals ) [
+;                set breed i-altruist set color green set payoff ifit ]
+;            if ( [ ifit ] of self ) > mean ( [ payoff ] of turtles in-radius Visible-individuals ) [
+;              set breed i-altruist set color yellow set payoff ifit ] ]
+;          ask u-altruist with [ self != myself ] in-radius Visible-individuals [
+;            if ufit  > mean ( [ payoff ] of turtles in-radius Visible-individuals ) [
+;              set breed u-altruist set color red set payoff ufit ]
+;            if ( [ ufit ] of self ) > mean ( [ payoff ] of turtles in-radius Visible-individuals ) [
+;              set breed u-altruist set color yellow set payoff ufit  ] ]
+;          ask selfish with [ self != myself ] in-radius Visible-individuals [
+;            if sfit  > mean ( [ payoff ] of turtles in-radius Visible-individuals ) [
+;              set breed selfish set color green set payoff sfit ]
+;            if ( [ sfit ] of self ) > mean ( [ payoff ] of turtles in-radius Visible-individuals ) [
+;              set breed selfish set color red set payoff sfit ] ]
+;  ]
+  [ ask i-altruists with [ count u-altruists in-radius Visible-individuals > 0 ] [
+      if ifit < mean ( [ ufit ] of u-altruists in-radius Visible-individuals )
+      [ set breed u-altruists set color green set payoff ufit ] ]
+  ask i-altruists with [ count selfish_p in-radius Visible-individuals > 0 ] [
+      if ifit < mean ( [ sfit ] of selfish_p in-radius Visible-individuals )
+      [ set breed selfish_p set color yellow set payoff sfit ] ]
+  ask u-altruists with [ count i-altruists in-radius Visible-individuals > 0 ] [
+      if ufit < mean ( [ ifit ] of i-altruists in-radius Visible-individuals )
+      [ set breed i-altruists set color red set payoff ifit ] ]
+  ask u-altruists with [ count selfish_p in-radius Visible-individuals > 0 ] [
+      if ufit < mean ( [ sfit ] of selfish_p in-radius Visible-individuals )
+      [ set breed selfish_p set color yellow set payoff sfit ] ]
+  ask selfish_p with [ count i-altruists in-radius Visible-individuals > 0 ] [
+      if sfit < mean ( [ ifit ] of i-altruists in-radius Visible-individuals )
+      [ set breed i-altruists set color red set payoff ifit ] ]
+  ask selfish_p with [ count u-altruists in-radius Visible-individuals > 0 ] [
+      if sfit > mean ( [ ufit ] of u-altruists in-radius Visible-individuals )
+      [ set breed u-altruists set color green set payoff ufit ] ]
+      ]
+end
+
+;; old procedure that does not work properly since it affects the system as a whole
+
+;;;;;;;;;;;;;;;;;; other older code ;;;;;;;;;;;;;;;;;;;
+
+;  [ ask turtles with [ self != myself ] in-radius Visible-individuals [
+;      if ( mean [ ifit ] of turtles  > mean [ ufit ] of turtles ) and ( mean [ ifit ] of turtles > mean [ sfit ] of turtles ) [
+;        hatch-i-altruist ( count i-altruist * 0.05 ) [ setxyz random-xcor random-ycor random-zcor ] ]
+;      if ifit > sfit [ hatch-i-altruist 1 [ setxyz random-xcor random-ycor random-zcor ] ]
+;      if ( mean [ ufit ] of turtles  > mean [ ifit ] of turtles ) and ( mean [ ufit ] of turtles > mean [ sfit ] of turtles ) [
+;        hatch-u-altruist ( count i-altruist * 0.05 ) [ setxyz random-xcor random-ycor random-zcor ] ]
+;      if ufit > sfit [ hatch-u-altruist 1 [ setxyz random-xcor random-ycor random-zcor ] ]
+;      if ( mean [ sfit ] of turtles  > mean [ ifit ] of turtles ) and ( mean [ sfit ] of turtles > mean [ ufit ] of turtles ) [
+;        hatch-selfish ( count i-altruist * 0.05 ) [ setxyz random-xcor random-ycor random-zcor ] ]
+;      if sfit > ufit [ hatch-selfish 1 [ setxyz random-xcor random-ycor random-zcor ] ]
+;      ]  ]
+;  move
+;end
+
+
+
+to relocate
+  if avoid-edges [
+  ask turtles [
+    if ( xcor = 50 ) or ( ycor = 50 ) or ( zcor = 50 ) [ setxyz random-xcor random-ycor random-zcor ]
+    if ( xcor = -50 ) or ( ycor = -50 ) or ( zcor = -50 ) [ setxyz random-xcor random-ycor random-zcor ]
+  ] ]
+end
+
+
+;; Simon's formula for intelligent altruists (was here, it is now above)
+
+;to fitness-u
+;  ask u-altruist with [ self != myself ] in-radius Visible-individuals [
+;    set ufit (Normal-Fitness + Fitness-docility * Increment-U-altruist + Others-Altruist * ((count i-altruist in-radius Visible-individuals) / (count turtles in-radius Visible-individuals)) * Extent-Altruism + Others-U-altruist * ((count u-altruist in-radius Visible-individuals) / (count turtles in-radius Visible-individuals)) * Extent-U-altruism - Cost-of-Altruism * Extent-U-altruism)
+;    ]    ;; Simon's formula for unintelligent altruists
+;end
+
+;to fitness-s
+;  ask selfish with [ self != myself ] in-radius Visible-individuals [
+;  set sfit (Normal-Fitness + Others-Altruist * ((count i-altruist in-radius Visible-individuals) / (count turtles in-radius Visible-individuals)) * Extent-Altruism + Others-U-altruist * ((count u-altruist in-radius Visible-individuals) / (count turtles in-radius Visible-individuals)) * Extent-U-altruism)
+;  ]         ;; Simon's formula for selfish agents
+;end
+
+;to prosper
+;    hatch-selfish sfit                 ;; aaarrrhhhhh!!!!
+;    hatch-i-altruist ifit
+;    hatch-u-altruist ufit
+;    move
+;end
+
+
+; Model by Davide Secchi 2010-2013
+; Copyright 1998 Uri Wilensky. All rights reserved.
+; The full copyright notice is in the Information tab.
+@#$#@#$#@
+GRAPHICS-WINDOW
+0
+0
+508
+529
+-1
+-1
+4.931
+1
+10
+1
+1
+1
+0
+1
+1
+1
+-50
+50
+-50
+50
+-50
+50
+1
+1
+1
+interactions
+30.0
+
+BUTTON
+20
+42
+101
+75
+NIL
+setup
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+BUTTON
+115
+42
+192
+75
+NIL
+go
+NIL
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+PLOT
+12
+397
+571
+637
+Docile/Non-docile Frequency
+Interactions
+Number of Agents
+0.0
+30.0
+0.0
+100.0
+true
+true
+"" ""
+PENS
+"i" 1.0 0 -2674135 true "" ""
+"s" 1.0 0 -1184463 true "" ""
+"u" 1.0 0 -10899396 true "" ""
+
+SLIDER
+19
+175
+191
+208
+Normal-Fitness
+Normal-Fitness
+0
+10
+1.01
+0.01
+1
+NIL
+HORIZONTAL
+
+SLIDER
+18
+219
+190
+252
+Fitness-docility
+Fitness-docility
+-0.1
+.1
+0.05
+0.01
+1
+NIL
+HORIZONTAL
+
+SLIDER
+18
+264
+190
+297
+Increment-Altruist
+Increment-Altruist
+0
+10
+2.0
+0.1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+212
+173
+384
+206
+Others-Altruist
+Others-Altruist
+0
+10
+0.01
+0.01
+1
+NIL
+HORIZONTAL
+
+SLIDER
+211
+218
+383
+251
+Extent-Altruism
+Extent-Altruism
+0
+1
+0.8
+0.01
+1
+NIL
+HORIZONTAL
+
+SLIDER
+211
+264
+383
+297
+Others-U-altruist
+Others-U-altruist
+0
+10
+0.005
+0.001
+1
+NIL
+HORIZONTAL
+
+SLIDER
+211
+308
+383
+341
+Extent-U-altruism
+Extent-U-altruism
+0
+1
+1.0
+0.01
+1
+NIL
+HORIZONTAL
+
+SLIDER
+17
+350
+189
+383
+Cost-of-Altruism
+Cost-of-Altruism
+0
+0.5
+0.1
+0.001
+1
+NIL
+HORIZONTAL
+
+SLIDER
+17
+307
+190
+340
+Increment-U-altruist
+Increment-U-altruist
+0
+10
+1.0
+0.1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+18
+86
+190
+119
+Initial#-i-altruists
+Initial#-i-altruists
+0
+200
+60.0
+1
+1
+NIL
+HORIZONTAL
+
+MONITOR
+597
+454
+698
+499
+# selfish (%)
+(count selfish_p) / (count turtles)
+3
+1
+11
+
+MONITOR
+597
+503
+697
+548
+# i-altruist (%)
+count i-altruists / (count turtles)
+3
+1
+11
+
+MONITOR
+597
+552
+697
+597
+# u-altruist (%)
+count u-altruists / (count turtles)
+3
+1
+11
+
+MONITOR
+702
+456
+767
+501
+# selfish
+count selfish_p
+3
+1
+11
+
+MONITOR
+702
+504
+767
+549
+# i-alt
+count i-altruists
+3
+1
+11
+
+SLIDER
+211
+350
+383
+383
+Visible-individuals
+Visible-individuals
+0
+20
+8.0
+1
+1
+NIL
+HORIZONTAL
+
+MONITOR
+702
+553
+766
+598
+# u-alt
+count u-altruists
+3
+1
+11
+
+SLIDER
+212
+88
+384
+121
+Initial#-u-altruists
+Initial#-u-altruists
+0
+200
+60.0
+1
+1
+NIL
+HORIZONTAL
+
+SLIDER
+212
+130
+384
+163
+Initial#-selfish
+Initial#-selfish
+0
+200
+60.0
+1
+1
+NIL
+HORIZONTAL
+
+TEXTBOX
+217
+30
+569
+84
+The three sliders with \"Initial#\" set how many intelligent altruists (i-alt.), unintelligent altruists (u-alt.) and selfish individuals you want start with
+10
+101.0
+1
+
+TEXTBOX
+403
+104
+582
+403
+Normal-Fitness: adaptiveness of every individual\n\nFitness-docility: additional adaptiveness due to being docile (only altruists have it)\n\nIncrement-(U)-Altruist: how much an individual gains from being docile\n\nOthers-(U)-Altruist: incremental fitness deriving from other individuals being altruist around you\n\nExtent-(U)-altruism: the extent to which one (i or u) is altruist\n\nVisible-individuals: number of individuals everyone interacts with
+10
+0.0
+1
+
+BUTTON
+18
+129
+81
+162
+NIL
+go
+T
+1
+T
+OBSERVER
+NIL
+NIL
+NIL
+NIL
+1
+
+MONITOR
+598
+30
+668
+75
+mean sfit
+mean [ sfit ] of selfish_p with [ count my-links  > 0 ]
+3
+1
+11
+
+MONITOR
+598
+77
+668
+122
+mean ifit
+mean [ ifit ] of i-altruists with [ count my-links > 0 ]
+3
+1
+11
+
+MONITOR
+599
+125
+668
+170
+mean ufit
+mean [ ufit ] of u-altruists with [ count my-links  > 0 ]
+3
+1
+11
+
+SWITCH
+88
+130
+196
+163
+kill-em-all
+kill-em-all
+0
+1
+-1000
+
+SWITCH
+596
+368
+729
+401
+relation
+relation
+0
+1
+-1000
+
+SWITCH
+597
+411
+728
+444
+avoid-edges
+avoid-edges
+0
+1
+-1000
+
+MONITOR
+672
+126
+754
+171
+GrandM ufit
+mean [ ufit ] of u-altruists
+3
+1
+11
+
+MONITOR
+671
+78
+754
+123
+GrandM ifit
+mean [ ifit ] of i-altruists
+3
+1
+11
+
+MONITOR
+670
+30
+755
+75
+GrandM sfit
+mean [ sfit ] of selfish_p
+3
+1
+11
+
+MONITOR
+601
+198
+667
+243
+M payoff
+mean [ payoff ] of turtles
+3
+1
+11
+
+MONITOR
+599
+256
+671
+301
+SD payoff
+standard-deviation [ payoff ] of turtles
+3
+1
+11
+
+MONITOR
+599
+309
+673
+354
+M - 2 * SD
+mean [ payoff ] of turtles - ( Visible-individuals / 2 ) * standard-deviation [ payoff ] of turtles
+3
+1
+11
+
+@#$#@#$#@
+## WHAT IS IT?
+
+What we have here is the reproduction of Simon's hypotheses on altruism and selfishness. His idea, published in two articles (1990; 1993), is grounded on what he called "docility." This is the "tendency to depend on suggestions, recommendations, persuasion, and information obtained through social channels as a major basis for choice" (Simon, 1993, Altruism and Economics, AEA Papers and Proceedings, p. 156). According to this concept, pro-social tendencies are supported by altruism, where selfishness is not successful in social environments.
+
+In the 1993 article, Simon presents three equations and suggests that there are parameters' values that support this idea. We have tried to reproduce the original model in this simulation. We obtain something similar to what is in the article although agents in simulations follow a different pathway and we can make assumptions on their behavior (e.g., movements).
+
+We have three types of agents: (a) selfish individuals, (b) intelligent altruists, and (c) unitelligent altruists. Selfish individuals are those that behave according to neo-classical economics. Therefore, when they interact with altruists they do not have any costs but get all that they can from them. There is only a gain. The second type are individuals that are altruist but are able too discriminate and interpret the extent to which they really want to engage in altruist behavior. The last ones are those who are not capable of making any sort of discrimination and are always altruists no matter what. The huge difference between altruists and selfish individuals is that the latter are not docile, i.e. they do not share information with other individuals. Those that do that-i.e. they share information with other members of the community-have a significant gain in terms of fitness. This is represented by docility.
+
+## HOW TO USE IT
+
+First of all, you should decide the initial number of agents in the simulation. The slider "Initial#-altruists" sets the initial number for both intelligent and unintelligent altruists.
+
+Other sliders mean the following:
+
+Normal-Fitness: adaptiveness of every individual  
+Fitness-docility: additional adaptiveness due to being docile (only altruists have it)  
+Increment-(U)-Altruist: how much an individual gains from being docile  
+Others-(U)-Altruist: incremental fitness deriving from other individuals being altruist around you  
+Extent-(U)-altruism: the extent to which one (i or u) is altruist  
+Visible-individuals: number of individuals everyone interacts with
+
+## HOW IT WORKS
+
+The system is based on the equation that defines "fitness," i.e. the adaptiveness of individuals to a given social system. The higher that number the better chances to live and prosper (reproduce) there are for that individual. Originally, the system was thought of as an imitation of evolutionary biology models. For this reason, I have used "reproduction" (the numebr of individuals grow in the simulation) instead of having a closed system with people changing their mindset and becoming more altruist or selfish (this is probably an idea for the next step).
+
+## THINGS TO NOTICE
+
+Initial conditions may affect the emergence of selfish, intelligent, or unintelligent altruists. This is different from what Simon thought. His model is equation-based and deterministic, i.e. results depend on overall fitness levels of each individual, depending on their characteristics.
+
+There are still adjustments needed in this model. Please use carefully and send me an email if you notice something strange. This is a work in progress.
+
+## THINGS TO TRY
+
+Click the "setup" button and run the simulation more than one time. You will see that results may change significantly.  
+Also, try to change the initial number of participants and interactions (how many visible individuals everyone interacts with). You will notice that altruism works better when more individuals interact. However, if the number of altruists remain high, you can see how selfish survive.
+
+## EXTENDING THE MODEL
+
+I will create a second model to include what is in Secchi, 2007, and a third, that is in Secchi and Bardone, 2009.
+
+## HOW I STARTED
+
+This is my first simulation model. I started from what I found in the NetLogo website:  
+- Wilensky, U. (2002).  NetLogo PD Basic Evolutionary model.  http://ccl.northwestern.edu/netlogo/models/PDBasicEvolutionary.  Center for Connected Learning and Computer-Based Modeling, Northwestern University, Evanston, IL.
+
+- Wilensky, U. (1999). NetLogo. http://ccl.northwestern.edu/netlogo/. Center for Connected Learning and Computer-Based Modeling, Northwestern University, Evanston, IL.
+
+## COPYRIGHT NOTICE
+
+Copyright 2002 Uri Wilensky. All rights reserved.
+
+Permission to use, modify or redistribute this model is hereby granted, provided that both of the following requirements are followed:  
+a) this copyright notice is included.  
+b) this model will not be redistributed for profit without permission from Uri Wilensky. Contact Uri Wilensky for appropriate licenses for redistribution for profit.
+
+This model was created as part of the projects: PARTICIPATORY SIMULATIONS: NETWORK-BASED DESIGN FOR SYSTEMS LEARNING IN CLASSROOMS and/or INTEGRATED SIMULATION AND MODELING ENVIRONMENT. The project gratefully acknowledges the support of the National Science Foundation (REPP & ROLE programs) -- grant numbers REC #9814682 and REC-0126227.
+@#$#@#$#@
+default
+true
+0
+Polygon -7500403 true true 150 5 40 250 150 205 260 250
+
+airplane
+true
+0
+Polygon -7500403 true true 150 0 135 15 120 60 120 105 15 165 15 195 120 180 135 240 105 270 120 285 150 270 180 285 210 270 165 240 180 180 285 195 285 165 180 105 180 60 165 15
+
+arrow
+true
+0
+Polygon -7500403 true true 150 0 0 150 105 150 105 293 195 293 195 150 300 150
+
+box
+false
+0
+Polygon -7500403 true true 150 285 285 225 285 75 150 135
+Polygon -7500403 true true 150 135 15 75 150 15 285 75
+Polygon -7500403 true true 15 75 15 225 150 285 150 135
+Line -16777216 false 150 285 150 135
+Line -16777216 false 150 135 15 75
+Line -16777216 false 150 135 285 75
+
+bug
+true
+0
+Circle -7500403 true true 96 182 108
+Circle -7500403 true true 110 127 80
+Circle -7500403 true true 110 75 80
+Line -7500403 true 150 100 80 30
+Line -7500403 true 150 100 220 30
+
+butterfly
+true
+0
+Polygon -7500403 true true 150 165 209 199 225 225 225 255 195 270 165 255 150 240
+Polygon -7500403 true true 150 165 89 198 75 225 75 255 105 270 135 255 150 240
+Polygon -7500403 true true 139 148 100 105 55 90 25 90 10 105 10 135 25 180 40 195 85 194 139 163
+Polygon -7500403 true true 162 150 200 105 245 90 275 90 290 105 290 135 275 180 260 195 215 195 162 165
+Polygon -16777216 true false 150 255 135 225 120 150 135 120 150 105 165 120 180 150 165 225
+Circle -16777216 true false 135 90 30
+Line -16777216 false 150 105 195 60
+Line -16777216 false 150 105 105 60
+
+car
+false
+0
+Polygon -7500403 true true 300 180 279 164 261 144 240 135 226 132 213 106 203 84 185 63 159 50 135 50 75 60 0 150 0 165 0 225 300 225 300 180
+Circle -16777216 true false 180 180 90
+Circle -16777216 true false 30 180 90
+Polygon -16777216 true false 162 80 132 78 134 135 209 135 194 105 189 96 180 89
+Circle -7500403 true true 47 195 58
+Circle -7500403 true true 195 195 58
+
+circle
+false
+0
+Circle -7500403 true true 0 0 300
+
+circle 2
+false
+0
+Circle -7500403 true true 0 0 300
+Circle -16777216 true false 30 30 240
+
+cow
+false
+0
+Polygon -7500403 true true 200 193 197 249 179 249 177 196 166 187 140 189 93 191 78 179 72 211 49 209 48 181 37 149 25 120 25 89 45 72 103 84 179 75 198 76 252 64 272 81 293 103 285 121 255 121 242 118 224 167
+Polygon -7500403 true true 73 210 86 251 62 249 48 208
+Polygon -7500403 true true 25 114 16 195 9 204 23 213 25 200 39 123
+
+cylinder
+false
+0
+Circle -7500403 true true 0 0 300
+
+dot
+false
+0
+Circle -7500403 true true 90 90 120
+
+face happy
+false
+0
+Circle -7500403 true true 8 8 285
+Circle -16777216 true false 60 75 60
+Circle -16777216 true false 180 75 60
+Polygon -16777216 true false 150 255 90 239 62 213 47 191 67 179 90 203 109 218 150 225 192 218 210 203 227 181 251 194 236 217 212 240
+
+face neutral
+false
+0
+Circle -7500403 true true 8 7 285
+Circle -16777216 true false 60 75 60
+Circle -16777216 true false 180 75 60
+Rectangle -16777216 true false 60 195 240 225
+
+face sad
+false
+0
+Circle -7500403 true true 8 8 285
+Circle -16777216 true false 60 75 60
+Circle -16777216 true false 180 75 60
+Polygon -16777216 true false 150 168 90 184 62 210 47 232 67 244 90 220 109 205 150 198 192 205 210 220 227 242 251 229 236 206 212 183
+
+fish
+false
+0
+Polygon -1 true false 44 131 21 87 15 86 0 120 15 150 0 180 13 214 20 212 45 166
+Polygon -1 true false 135 195 119 235 95 218 76 210 46 204 60 165
+Polygon -1 true false 75 45 83 77 71 103 86 114 166 78 135 60
+Polygon -7500403 true true 30 136 151 77 226 81 280 119 292 146 292 160 287 170 270 195 195 210 151 212 30 166
+Circle -16777216 true false 215 106 30
+
+flag
+false
+0
+Rectangle -7500403 true true 60 15 75 300
+Polygon -7500403 true true 90 150 270 90 90 30
+Line -7500403 true 75 135 90 135
+Line -7500403 true 75 45 90 45
+
+flower
+false
+0
+Polygon -10899396 true false 135 120 165 165 180 210 180 240 150 300 165 300 195 240 195 195 165 135
+Circle -7500403 true true 85 132 38
+Circle -7500403 true true 130 147 38
+Circle -7500403 true true 192 85 38
+Circle -7500403 true true 85 40 38
+Circle -7500403 true true 177 40 38
+Circle -7500403 true true 177 132 38
+Circle -7500403 true true 70 85 38
+Circle -7500403 true true 130 25 38
+Circle -7500403 true true 96 51 108
+Circle -16777216 true false 113 68 74
+Polygon -10899396 true false 189 233 219 188 249 173 279 188 234 218
+Polygon -10899396 true false 180 255 150 210 105 210 75 240 135 240
+
+house
+false
+0
+Rectangle -7500403 true true 45 120 255 285
+Rectangle -16777216 true false 120 210 180 285
+Polygon -7500403 true true 15 120 150 15 285 120
+Line -16777216 false 30 120 270 120
+
+leaf
+false
+0
+Polygon -7500403 true true 150 210 135 195 120 210 60 210 30 195 60 180 60 165 15 135 30 120 15 105 40 104 45 90 60 90 90 105 105 120 120 120 105 60 120 60 135 30 150 15 165 30 180 60 195 60 180 120 195 120 210 105 240 90 255 90 263 104 285 105 270 120 285 135 240 165 240 180 270 195 240 210 180 210 165 195
+Polygon -7500403 true true 135 195 135 240 120 255 105 255 105 285 135 285 165 240 165 195
+
+line
+true
+0
+Line -7500403 true 150 0 150 300
+
+line half
+true
+0
+Line -7500403 true 150 0 150 150
+
+pentagon
+false
+0
+Polygon -7500403 true true 150 15 15 120 60 285 240 285 285 120
+
+person
+false
+0
+Circle -7500403 true true 110 5 80
+Polygon -7500403 true true 105 90 120 195 90 285 105 300 135 300 150 225 165 300 195 300 210 285 180 195 195 90
+Rectangle -7500403 true true 127 79 172 94
+Polygon -7500403 true true 195 90 240 150 225 180 165 105
+Polygon -7500403 true true 105 90 60 150 75 180 135 105
+
+plant
+false
+0
+Rectangle -7500403 true true 135 90 165 300
+Polygon -7500403 true true 135 255 90 210 45 195 75 255 135 285
+Polygon -7500403 true true 165 255 210 210 255 195 225 255 165 285
+Polygon -7500403 true true 135 180 90 135 45 120 75 180 135 210
+Polygon -7500403 true true 165 180 165 210 225 180 255 120 210 135
+Polygon -7500403 true true 135 105 90 60 45 45 75 105 135 135
+Polygon -7500403 true true 165 105 165 135 225 105 255 45 210 60
+Polygon -7500403 true true 135 90 120 45 150 15 180 45 165 90
+
+square
+false
+0
+Rectangle -7500403 true true 30 30 270 270
+
+square 2
+false
+0
+Rectangle -7500403 true true 30 30 270 270
+Rectangle -16777216 true false 60 60 240 240
+
+star
+false
+0
+Polygon -7500403 true true 151 1 185 108 298 108 207 175 242 282 151 216 59 282 94 175 3 108 116 108
+
+target
+false
+0
+Circle -7500403 true true 0 0 300
+Circle -16777216 true false 30 30 240
+Circle -7500403 true true 60 60 180
+Circle -16777216 true false 90 90 120
+Circle -7500403 true true 120 120 60
+
+tree
+false
+0
+Circle -7500403 true true 118 3 94
+Rectangle -6459832 true false 120 195 180 300
+Circle -7500403 true true 65 21 108
+Circle -7500403 true true 116 41 127
+Circle -7500403 true true 45 90 120
+Circle -7500403 true true 104 74 152
+
+triangle
+false
+0
+Polygon -7500403 true true 150 30 15 255 285 255
+
+triangle 2
+false
+0
+Polygon -7500403 true true 150 30 15 255 285 255
+Polygon -16777216 true false 151 99 225 223 75 224
+
+truck
+false
+0
+Rectangle -7500403 true true 4 45 195 187
+Polygon -7500403 true true 296 193 296 150 259 134 244 104 208 104 207 194
+Rectangle -1 true false 195 60 195 105
+Polygon -16777216 true false 238 112 252 141 219 141 218 112
+Circle -16777216 true false 234 174 42
+Rectangle -7500403 true true 181 185 214 194
+Circle -16777216 true false 144 174 42
+Circle -16777216 true false 24 174 42
+Circle -7500403 false true 24 174 42
+Circle -7500403 false true 144 174 42
+Circle -7500403 false true 234 174 42
+
+turtle
+true
+0
+Polygon -10899396 true false 215 204 240 233 246 254 228 266 215 252 193 210
+Polygon -10899396 true false 195 90 225 75 245 75 260 89 269 108 261 124 240 105 225 105 210 105
+Polygon -10899396 true false 105 90 75 75 55 75 40 89 31 108 39 124 60 105 75 105 90 105
+Polygon -10899396 true false 132 85 134 64 107 51 108 17 150 2 192 18 192 52 169 65 172 87
+Polygon -10899396 true false 85 204 60 233 54 254 72 266 85 252 107 210
+Polygon -7500403 true true 119 75 179 75 209 101 224 135 220 225 175 261 128 261 81 224 74 135 88 99
+
+wheel
+false
+0
+Circle -7500403 true true 3 3 294
+Circle -16777216 true false 30 30 240
+Line -7500403 true 150 285 150 15
+Line -7500403 true 15 150 285 150
+Circle -7500403 true true 120 120 60
+Line -7500403 true 216 40 79 269
+Line -7500403 true 40 84 269 221
+Line -7500403 true 40 216 269 79
+Line -7500403 true 84 40 221 269
+
+x
+false
+0
+Polygon -7500403 true true 270 75 225 30 30 225 75 270
+Polygon -7500403 true true 30 75 75 30 270 225 225 270
+@#$#@#$#@
+NetLogo 3D 6.1.0
+@#$#@#$#@
+@#$#@#$#@
+@#$#@#$#@
+<experiments>
+  <experiment name="base experiment" repetitions="50" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <timeLimit steps="100"/>
+    <metric>count turtles with [ color = red ]</metric>
+    <metric>count turtles with [ color = green ]</metric>
+    <metric>count turtles with [ color = yellow ]</metric>
+    <metric>mean [ ifit ] of turtles</metric>
+    <metric>mean [ ufit ] of turtles</metric>
+    <metric>mean [ sfit ] of turtles</metric>
+    <metric>standard-deviation [ ifit ] of turtles</metric>
+    <metric>standard-deviation [ ufit ] of turtles</metric>
+    <metric>standard-deviation [ sfit ] of turtles</metric>
+    <enumeratedValueSet variable="Increment-Altruist">
+      <value value="2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="Extent-U-altruism">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="Cost-of-Altruism">
+      <value value="0.005"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="Visible-individuals">
+      <value value="3"/>
+      <value value="6"/>
+      <value value="9"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="Others-Altruist">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="Initial#-i-altruists">
+      <value value="60"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="Initial#-u-altruists">
+      <value value="60"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="Increment-U-altruist">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="Normal-Fitness">
+      <value value="1.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="Initial#-selfish">
+      <value value="60"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="Others-U-altruist">
+      <value value="0.005"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="kill-em-all">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="Fitness-docility">
+      <value value="0.02"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="Extent-Altruism">
+      <value value="0.8"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="relation">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="avoid-edges">
+      <value value="false"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="base experiment 2" repetitions="50" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <timeLimit steps="100"/>
+    <metric>count turtles with [ color = red ]</metric>
+    <metric>count turtles with [ color = green ]</metric>
+    <metric>count turtles with [ color = yellow ]</metric>
+    <metric>mean [ ifit ] of turtles</metric>
+    <metric>mean [ ufit ] of turtles</metric>
+    <metric>mean [ sfit ] of turtles</metric>
+    <metric>standard-deviation [ ifit ] of turtles</metric>
+    <metric>standard-deviation [ ufit ] of turtles</metric>
+    <metric>standard-deviation [ sfit ] of turtles</metric>
+    <enumeratedValueSet variable="Increment-Altruist">
+      <value value="2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="Extent-U-altruism">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="Cost-of-Altruism">
+      <value value="0.005"/>
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="Visible-individuals">
+      <value value="3"/>
+      <value value="6"/>
+      <value value="9"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="Others-Altruist">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="Initial#-i-altruists">
+      <value value="60"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="Initial#-u-altruists">
+      <value value="60"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="Increment-U-altruist">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="Normal-Fitness">
+      <value value="1.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="Initial#-selfish">
+      <value value="60"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="Others-U-altruist">
+      <value value="0.005"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="kill-em-all">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="Fitness-docility">
+      <value value="0.02"/>
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="Extent-Altruism">
+      <value value="0.8"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="relation">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="avoid-edges">
+      <value value="false"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="base experiment 3 KEAoff" repetitions="30" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <timeLimit steps="100"/>
+    <metric>count i-altruist</metric>
+    <metric>count u-altruist</metric>
+    <metric>count selfish</metric>
+    <metric>mean [ ifit ] of i-altruist</metric>
+    <metric>mean [ ufit ] of u-altruist</metric>
+    <metric>mean [ sfit ] of selfish</metric>
+    <metric>standard-deviation [ ifit ] of i-altruist</metric>
+    <metric>standard-deviation [ ufit ] of u-altruist</metric>
+    <metric>standard-deviation [ sfit ] of selfish</metric>
+    <metric>mean [ payoff ] of turtles</metric>
+    <metric>standard-deviation [ payoff ] of turtles</metric>
+    <metric>sum [ count my-links ] of i-altruist</metric>
+    <metric>sum [ count my-links ] of u-altruist</metric>
+    <metric>sum [ count my-links ] of selfish</metric>
+    <enumeratedValueSet variable="Increment-Altruist">
+      <value value="2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="Extent-U-altruism">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="Cost-of-Altruism">
+      <value value="0.05"/>
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="Visible-individuals">
+      <value value="3"/>
+      <value value="6"/>
+      <value value="9"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="Others-Altruist">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="Initial#-i-altruists">
+      <value value="60"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="Initial#-u-altruists">
+      <value value="60"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="Increment-U-altruist">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="Normal-Fitness">
+      <value value="1.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="Initial#-selfish">
+      <value value="60"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="Others-U-altruist">
+      <value value="0.005"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="kill-em-all">
+      <value value="false"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="Fitness-docility">
+      <value value="-0.1"/>
+      <value value="-0.02"/>
+      <value value="0"/>
+      <value value="0.02"/>
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="Extent-Altruism">
+      <value value="0.8"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="relation">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="avoid-edges">
+      <value value="false"/>
+    </enumeratedValueSet>
+  </experiment>
+  <experiment name="base experiment 5 KEAon v12" repetitions="30" runMetricsEveryStep="true">
+    <setup>setup</setup>
+    <go>go</go>
+    <timeLimit steps="100"/>
+    <metric>count i-altruist</metric>
+    <metric>count u-altruist</metric>
+    <metric>count selfish</metric>
+    <metric>mean [ ifit ] of i-altruist</metric>
+    <metric>mean [ ufit ] of u-altruist</metric>
+    <metric>mean [ sfit ] of selfish</metric>
+    <metric>standard-deviation [ ifit ] of i-altruist</metric>
+    <metric>standard-deviation [ ufit ] of u-altruist</metric>
+    <metric>standard-deviation [ sfit ] of selfish</metric>
+    <metric>mean [ payoff ] of turtles</metric>
+    <metric>standard-deviation [ payoff ] of turtles</metric>
+    <metric>sum [ count my-links ] of i-altruist</metric>
+    <metric>sum [ count my-links ] of u-altruist</metric>
+    <metric>sum [ count my-links ] of selfish</metric>
+    <enumeratedValueSet variable="Increment-Altruist">
+      <value value="2"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="Extent-U-altruism">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="Cost-of-Altruism">
+      <value value="0.005"/>
+      <value value="0.05"/>
+      <value value="0.5"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="Visible-individuals">
+      <value value="12"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="Others-Altruist">
+      <value value="0.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="Initial#-i-altruists">
+      <value value="60"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="Initial#-u-altruists">
+      <value value="60"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="Increment-U-altruist">
+      <value value="1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="Normal-Fitness">
+      <value value="1.01"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="Initial#-selfish">
+      <value value="60"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="Others-U-altruist">
+      <value value="0.005"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="kill-em-all">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="Fitness-docility">
+      <value value="-0.1"/>
+      <value value="-0.02"/>
+      <value value="0"/>
+      <value value="0.02"/>
+      <value value="0.1"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="Extent-Altruism">
+      <value value="0.8"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="relation">
+      <value value="true"/>
+    </enumeratedValueSet>
+    <enumeratedValueSet variable="avoid-edges">
+      <value value="false"/>
+    </enumeratedValueSet>
+  </experiment>
+</experiments>
+@#$#@#$#@
+@#$#@#$#@
+default
+0.0
+-0.2 0 0.0 1.0
+0.0 1 1.0 0.0
+0.2 0 0.0 1.0
+link direction
+true
+0
+Line -7500403 true 150 150 90 180
+Line -7500403 true 150 150 210 180
+@#$#@#$#@
+0
+@#$#@#$#@
