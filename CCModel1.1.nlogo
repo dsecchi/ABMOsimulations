@@ -1,5 +1,3 @@
-;extensions [ nw ]
-
 breed [ scholars  scholar ]
 breed [ publications publication ]
 
